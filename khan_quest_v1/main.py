@@ -45,6 +45,19 @@ def load_game_json():
             return data.get("location")
     return None
 def introduction():
+    def get_ai_context():
+        """Architect Level: Formats JSON state for an LLM."""
+        state = load_game_json()  # Loads your existing JSON
+        if not state:
+            return "The player is starting a new journey."
+
+        context = (
+            f"The player is currently at {state}. "
+            f"Their health is {health} and they are Level {level}. "
+            f"In their pockets, they have: {', '.join(inventory) if inventory else 'nothing'}. "
+            "Based on this, how should the next guard react?"
+        )
+        return context
     """Architect Entry Point: Boots the game and saves initial state."""
     speak("Welcome to Khan Quest.")
     speak("You wake up in a damp cell. Your architectural journey begins...")
