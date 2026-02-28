@@ -1,104 +1,58 @@
+import json
+import os
 import sys
 import time
-import os
-import random
 
+# --- CORE GLOBALS ---
 inventory = []
 health = 100
 deaths = 0
-xp = 0      # This tracks Khyan's growth
-level = 1   # This shows Khan is getting stronger
-def speak(text, delay=0.03):
+xp = 0
+level = 1
+
+def speak(text):
     for char in text:
         sys.stdout.write(char)
         sys.stdout.flush()
-        time.sleep(delay)
+        time.sleep(0.02)
     print()
 
-def save_game(location):
-    with open("savegame.txt", "w") as f:
-        f.write(f"{location}\n")
-        f.write(",".join(inventory) + "\n")
-        f.write(f"{health}\n")
-        f.write(f"{deaths}\n")
-        f.write(f"{xp}\n")
-        f.write(f"{level}\n")
-    speak("\n>>> PROGRESS SAVED.")
+def save_game_json(location):
+    """Architect Level: Structured Data Persistence"""
+    player_state = {
+        "location": location,
+        "inventory": inventory,
+        "health": health,
+        "deaths": deaths,
+        "xp": xp,
+        "level": level
+    }
+    with open("state.json", "w") as f:
+        json.dump(player_state, f, indent=4)
+    print("\n>>> SYSTEM: PROGRESS SERIALIZED TO JSON.")
 
-def load_game():
-    global inventory, health, deaths, xp, level     
-    if os.path.exists("savegame.txt"):
-        with open("savegame.txt", "r") as f:
-            lines = f.readlines()
-            if len(lines) < 3: return None
-            loc = lines[0].strip()
-            inv = lines[1].strip().split(",") if lines[1].strip() else []
-            inventory = [i for i in inv if i]
-            health = int(lines[2])
-            return loc
+def load_game_json():
+    """Architect Level: Schema Retrieval"""
+    global inventory, health, deaths, xp, level
+    if os.path.exists("state.json"):
+        with open("state.json", "r") as f:
+            data = json.load(f)
+            inventory = data.get("inventory", [])
+            health = data.get("health", 100)
+            deaths = data.get("deaths", 0)
+            xp = data.get("xp", 0)
+            level = data.get("level", 1)
+            return data.get("location")
     return None
-def skill_tree():
-    global xp, health, level
-    speak(f"\n--- SKILL MENU (XP: {xp} | Level: {level}) ---")
-    speak("1. Increase Max Health (+20 HP) - Costs 50 XP")
-    speak("2. Combat Training (Level Up) - Costs 100 XP")
-    speak("3. Exit Menu")
-    
-    choice = input("\nSelect an upgrade: ")
-    if choice == "1" and xp >= 50:
-        health += 20
-        xp -= 50
-        speak(f"Vitality increased! Health is now {health}.")
-    elif choice == "2" and xp >= 100:
-        level += 1
-        xp -= 100
-        speak(f"Rank Up! You are now Level {level}.")
-    elif choice == "3":
-        return
-    else:
-        speak("Not enough XP or invalid choice.")
-def combat(enemy_name, enemy_health):
-    global health
-    speak(f"\n!!! BOSS FIGHT: {enemy_name} !!!")
-    while enemy_health > 0 and health > 0:
-        speak(f"\n[ KHAN HP: {health} | {enemy_name} HP: {enemy_health} ]")
-        action = input("Action: [1] Strike | [2] Dodge | [3] Power Move | [4] Analyze: ")
-        if action == "1":
-            dmg = random.randint(10, 20) if "Sharpened Bolt" in inventory else random.randint(5, 12)
-            enemy_health -= dmg
-            speak(f"You dealt {dmg} damage!")
-        elif action == "3":
-            if random.random() > 0.4:
-                dmg = random.randint(25, 40)
-                enemy_health -= dmg
-                speak(f"POWER MOVE! You dealt {dmg} damage!")
-            else:
-                speak("You missed!")
-                health -= 10
-        elif action == "4":
-            health = min(100, health + 15)
-            speak("You recovered 15 HP.")
-        
-        if enemy_health > 0:
-            e_dmg = random.randint(10, 18)
-            if action == "2": e_dmg //= 3
-            health -= e_dmg
-            speak(f"{enemy_name} hits for {e_dmg}!")
-    if health <= 0:
-        speak("\nGAME OVER."); sys.exit()
-
 def introduction():
-    save_game("introduction")
-    speak("--- KHAN QUEST: THE REBIRTH ---")
-    speak("\nKhan steps off the bus. The high-vis vest feels like a neon target.")
-    choice = input("\nDo you [1] Keep the vest | [2] Ditch it? ")
-    if choice == "2":
-        the_yard(stealth=15)
-    else:
-        the_yard(stealth=5)
-
+    """Architect Entry Point: Boots the game and saves initial state."""
+    speak("Welcome to Khan Quest.")
+    speak("You wake up in a damp cell. Your architectural journey begins...")
+    save_game_json("introduction")
+    # Make sure this points to your next function, like cell_block()
+    cell_block()
 def the_yard(stealth):
-    save_game("the_yard")
+    save_game_json("the_yard")
     speak(f"\n--- THE YARD (Stealth: {stealth}) ---")
     if stealth > 10:
         speak("\nYou spot a loose stone. [1] Take the Sharpened Bolt | [2] Ignore it")
@@ -109,7 +63,7 @@ def the_yard(stealth):
     cell_block()
 
 def cell_block():
-    save_game("cell_block")
+    save_game_json("cell_block")
     speak("\n--- CELL BLOCK C ---")
     speak("Brick blocks your path. 'Welcome home, Khan. You got a gift for me?'")
     if "Sharpened Bolt" in inventory:
@@ -121,7 +75,7 @@ def cell_block():
     the_canteen()
 
 def the_canteen():
-    save_game("the_canteen")
+    save_game_json("the_canteen")
     speak("\n--- THE CANTEEN ---")
     speak("The room is loud. A group of lifers is whispering in the corner.")
     choice = input("\nDo you [1] Sit with them | [2] Eat alone? ")
@@ -134,7 +88,7 @@ def the_canteen():
     the_laundry()
 
 def the_laundry():
-    save_game("the_laundry")
+    save_game_json("the_laundry")
     speak("\n--- THE LAUNDRY ROOM ---")
     if "Scrap of Paper" in inventory:
         speak("\nThe paper leads to Machine 42. You find the GHOST RADIO.")
@@ -148,7 +102,7 @@ def the_laundry():
         sys.exit()
 
 def the_loading_dock():
-    save_game("the_loading_dock")
+    save_game_json("the_loading_dock")
     speak("\n--- THE LOADING DOCK ---")
     speak("A truck is idling. Guards are nearby.")
     if "Sergeant's Badge" in inventory:
@@ -171,11 +125,10 @@ def chapter_2_forest():
             skill_tree()
     speak("\nTo be continued...")
 if __name__ == "__main__":
-    saved_loc = load_game()
+    saved_loc = load_game_json()
     if saved_loc:
-        choice = input(f"Found a save at {saved_loc}. Load it? (y/n): ")
-        if choice.lower() == 'y':
-            # This looks up the function name from the save file
+        choice = input("Found a save! Resume? (y/n): ")
+        if choice.lower() == 'y' and saved_loc in globals():
             globals()[saved_loc]()
         else:
             introduction()
